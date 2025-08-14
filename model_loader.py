@@ -1,5 +1,7 @@
 from llama_cpp import Llama
 from random import randint
+import regex as re
+import json
 import time
 
 def generate_until_stop(llm, prompt, stop_token=None, max_tokens=300): #basic generation without prompt engineering
@@ -20,7 +22,7 @@ def generate_until_stop(llm, prompt, stop_token=None, max_tokens=300): #basic ge
 
 model_path = r"model\mistral-7b-instruct-v0.1-q4_k_m.gguf" 
 seed = randint(0, 10000)
-llm = Llama(model_path=model_path, n_thread=8, verbose=False, flash_attn=True, seed=seed, n_ctx=1024) #adjust for cpu cores, change as needed
+llm = Llama(model_path=model_path, n_thread=8, verbose=False, flash_attn=True, seed=seed, n_ctx=768) #adjust for cpu cores, change as needed
 print("Model Loaded!")
 
 # prompt = "Explain photosynthesis in relation to how it is a complex process." #sample prompt
@@ -66,11 +68,21 @@ def generate_quiz(llm, topic, num_questions=5):
 
     return response
 
+def extract_json(text):
+    pat = re.compile(r'\{(?:(?>[^{}]+)|(?R))*\}', re.DOTALL)
+    m = pat.search(text)
+    if not m:
+        raise ValueError("No JSON object found")
+    quiz = json.loads(m.group(0))
+    return quiz
+
+
 enc = llm.tokenizer() #grab Llama tokenizer 
 print("Beginning Generation:")
 time0 = time.time()
-response = generate_quiz(llm, "photosynthesis", num_questions=3)['choices'][0]['text']
+response = generate_quiz(llm, "photosynthesis", num_questions=2)['choices'][0]['text']
 time1 = time.time()
 print(f"length of text: {len(enc.encode(response))} tokens")
 print(f"generation time: {time1 - time0:.4f} seconds")
-print(response)
+extracted = extract_json(response)
+print(f"Question 1: {extracted['quiz'][0]['question']}")
