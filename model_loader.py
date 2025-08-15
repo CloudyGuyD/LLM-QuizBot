@@ -74,15 +74,17 @@ def extract_json(text):
     if not m:
         raise ValueError("No JSON object found")
     quiz = json.loads(m.group(0))
+    print("JSON extracted successfully!")
     return quiz
 
 
 enc = llm.tokenizer() #grab Llama tokenizer 
 print("Beginning Generation:")
 time0 = time.time()
-response = generate_quiz(llm, "photosynthesis", num_questions=2)['choices'][0]['text']
+response = generate_quiz(llm, "The immune system", num_questions=3)['choices'][0]['text'] #select only the output string
 time1 = time.time()
 print(f"length of text: {len(enc.encode(response))} tokens")
 print(f"generation time: {time1 - time0:.4f} seconds")
-extracted = extract_json(response)
-print(f"Question 1: {extracted['quiz'][0]['question']}")
+print(f"{len(enc.encode(response)) / (time1 - time0)} tok/sec")
+extracted = extract_json(response) #string -> dict
+print(response)
