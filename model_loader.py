@@ -21,14 +21,6 @@ def generate_until_stop(llm, prompt, stop_token=None, max_tokens=300): #basic ge
     return output
 
 
-model_path = r"model\mistral-7b-instruct-v0.1-q4_k_m.gguf" 
-seed = randint(0, 10000)
-llm = Llama(model_path=model_path, n_thread=8, verbose=False, flash_attn=True, seed=seed, n_ctx=768) #adjust for cpu cores, change as needed
-print("Model Loaded!")
-
-# prompt = "Explain photosynthesis in relation to how it is a complex process." #sample prompt
-# response = generate_until_stop(llm, prompt) #generate and print to terminal
-
 def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
     if (RAG and not file_path) or (not RAG and file_path is not None):
         raise ValueError("RAG and file_path must both be empty or filled.")
@@ -86,15 +78,3 @@ def extract_json(text):
     quiz = json.loads(m.group(0))
     print("JSON extracted successfully!")
     return quiz
-
-
-enc = llm.tokenizer() #grab Llama tokenizer 
-print("Beginning Generation:")
-time0 = time.time()
-response = generate_quiz(llm, "The immune system", num_questions=3)['choices'][0]['text'] #select only the output string
-time1 = time.time()
-print(f"length of text: {len(enc.encode(response))} tokens")
-print(f"generation time: {time1 - time0:.4f} seconds")
-print(f"{len(enc.encode(response)) / (time1 - time0)} tok/sec")
-extracted = extract_json(response) #string -> dict
-print(response)
