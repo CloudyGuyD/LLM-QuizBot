@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer, util
+import torch
 import fitz #PyMuPDF is labeled as fitz
 import os
 
@@ -44,7 +45,8 @@ def chunk_text(text, chunk_size): # returns a list of strings
 
 def similar_chunks(user_topic, doc_chunks, topk):
     # load the "all-MiniLM-L6-v2" sentence transformer model to embed our text
-    embd_model = SentenceTransformer("all-MiniLM-L6-v2")
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    embd_model = SentenceTransformer("all-MiniLM-L6-v2", device)
     #encode our topic and document separately
     topic_embd = embd_model.encode(user_topic) # (1, embd_dim)
     doc_embd = embd_model.encode(doc_chunks) #gives a list of embeddings from the chunk_text function (num_chunks, embd_dim)
