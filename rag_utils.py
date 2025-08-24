@@ -28,7 +28,7 @@ def load_text(file_path):
         ".pdf" : extract_text_pdf,
         ".txt" : extract_text_txt
     }
-    __, extension = os.splitext(file_path) # grab the file extension
+    __, extension = os.path.splitext(file_path) # grab the file extension
     extension = extension.lower() # use lowercase for consistency
     if extension not in file_extracts.keys(): # check if file is not a pdf or txt
         raise ValueError(f"Unsupported file type: {extension}")
