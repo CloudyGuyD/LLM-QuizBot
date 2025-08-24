@@ -37,46 +37,15 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
     if RAG:
         context = rag_path_to_chunks(file_path=file_path, user_topic=topic)
         context = "\n\n".join(context)
-        prompt = f"""You are an expert quiz creator. Your goal is to create high-quality quiz questions based **strictly on the provided context below**. Do not use any outside knowledge.
-
+        prompt_header = f"""You are an expert quiz creator. Your goal is to create high-quality quiz questions based **strictly on the provided context below**. Do not use any outside knowledge.
         ### CONTEXT ###
         {context}
         ### END CONTEXT ###
-
-        Instructions:
-        - The quiz should be about the topic: '{topic}'.
-        - Generate exactly {num_questions} questions:
-            1. {TF} True/False
-            2. {num_questions - TF} single/multiple-choice (1-4 correct answers)
-        - Each incorrect option must be plausible but wrong, derived from the context.
-        - Questions must be clear, concise, and unambiguous. Each question must have 3-5 options.
-        - Answers must be chosen exactly from the corresponding "options" array. Do not paraphrase or invent new answers.
-        - For questions containing 'not' or 'except', select the options that are factually not part of the correct group according to the context.
-        - Format the output as **valid JSON** only. No explanations or extra text outside of the JSON.
-        - The JSON output should contain {num_questions} questions with "question", "options", and "answers" fields.
-
-        JSON schema:
-        {{
-        "quiz": [
-            {{
-            "question": "question-string",
-            "options": ["string", "string", ...],
-            "answers": ["string", "string", ...]
-            }},
-            {{
-            "question": "string",
-            "options": ["string", "string", ...],
-            "answers": ["string", "string", ...]
-            }},
-            ...
-        ]
-        }}
         """
     else:
-        prompt = f"""
-        You are an expert quiz creator. Your goal is to create high-quality quiz questions based strictly on {topic}.  
+        prompt_header = f"""You are an expert quiz creator. Your goal is to create high-quality quiz questions based strictly on {topic}."""  
 
-        Instructions:  
+    base_prompt = f"""Instructions:  
         - Generate exactly {num_questions} questions:  
             1. {TF} True/False  
             2. {num_questions-TF} single/multiple-choice (1-4 correct answers)   
@@ -105,10 +74,8 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
         ]
         }}
         """
-
-
+    prompt = prompt_header + base_prompt #concatenate prompt sections together
     response = llm(prompt, max_tokens=500)
-
     return response
 
 def extract_json(text):
