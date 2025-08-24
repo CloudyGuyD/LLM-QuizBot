@@ -35,19 +35,28 @@ def load_text(file_path):
     text = extract(file_path) # collect text
     return text
 
-def chunk_text(text, chunk_size=300): # returns a list of strings
+def chunk_text(text, chunk_size): # returns a list of strings
     words = text.split() #create a list of words
     chunks = []
     for i in range(0, len(words), chunk_size):
         chunks.append(" ".join(words[i:i+chunk_size])) # grab our relevant chunk and join them with a space
     return chunks
 
-def similar_chunks(user_topic, doc_chunks, topk=2):
+def similar_chunks(user_topic, doc_chunks, topk):
+    # load the "all-MiniLM-L6-v2" sentence transformer model to embed our text
     embd_model = SentenceTransformer("all-MiniLM-L6-v2")
-    topic_embd = embd_model.encode(user_topic)
-    doc_embd = embd_model.encode(doc_chunks)
-    cos_scores = util.cos_sim(topic_embd, doc_embd)
-    chunk_idx = cos_scores[0].topk(k=topk).indices
-    top_chunks = [doc_chunks[i] for i in chunk_idx]
+    #encode our topic and document separately
+    topic_embd = embd_model.encode(user_topic) # (1, embd_dim)
+    doc_embd = embd_model.encode(doc_chunks) #gives a list of embeddings from the chunk_text function (num_chunks, embd_dim)
+    #find the cosine similarity scores for each chunk and topic combination
+    cos_scores = util.cos_sim(topic_embd, doc_embd) # (1, num_chunks)
+    chunk_idx = cos_scores[0].topk(k=topk).indices # grab the indices of the k most similar text chunks
+    top_chunks = [doc_chunks[i] for i in chunk_idx] # return a list of the most similar text chunks
     return top_chunks
+
+def rag_path_to_chunks(file_path, user_topic, chunk_size=300, topk=2):
+    text = load_text(file_path)
+    text_chunks = chunk_text(text, chunk_size)
+    similar = similar_chunks(user_topic, text_chunks, topk)
+    return similar
     
