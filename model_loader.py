@@ -2,7 +2,6 @@ from llama_cpp import Llama
 from random import randint
 import regex as re
 import json
-import time
 from rag_utils import rag_path_to_chunks
 
 def generate_until_stop(llm, prompt, stop_token=None, max_tokens=300): #basic generation without prompt engineering
