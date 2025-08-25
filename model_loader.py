@@ -29,7 +29,14 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
     if RAG:
         context = rag_path_to_chunks(file_path=file_path, user_topic=topic)
         context = "\n\n".join(context)
-        prompt_header = f"""You are an expert quiz creator. Your goal is to create high-quality quiz questions based **strictly on the provided context below**. Do not use any outside knowledge.
+        prompt_header = f"""You are an expert quiz creator. Your **only task** is to create a quiz based **strictly on the provided context**.
+
+        **CRITICAL INSTRUCTIONS:**
+        - **DO NOT** use any information outside of the provided context.
+        - Every question, option, and answer **MUST** be derived directly from the text in the context below.
+        - If the context is insufficient to create a full quiz, create as many questions as you can from the given text.
+        - **DO NOT** make up questions about general knowledge topics like capitals or planets.
+
         ### CONTEXT ###
         {context}
         ### END CONTEXT ###
@@ -37,44 +44,39 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
     else:
         prompt_header = f"""You are an expert quiz creator. Your goal is to create high-quality quiz questions based strictly on {topic}."""  
 
-    base_prompt = f"""Instructions:  
-        - Generate exactly {num_questions} questions:  
-            1. {TF} True/False  
-            2. {num_questions-TF} single/multiple-choice (1-4 correct answers)   
-        - Each incorrect option must be plausible but wrong.  
-        - Questions should be clear, concise, and unambiguous. Each question must have 3–5 options, including all correct answers.  
-        - Answers must be chosen exactly from the corresponding "options" array, Do not paraphrase or invent new answers.
-        - For questions containing 'not' or 'except', select the options that are factually not part of the correct group.
-        - Format the output as **valid JSON** only. No explanations or extra text outside of JSON output.
-        - Only output JSON. Nothing else. 
-        - The JSON output should contain {num_questions} questions with a "question" field, {num_questions} "options" fields, and {num_questions} "answers" fields that includes correct answers only. The order of the questions does not matter.
+    base_prompt = f"""
+      Instructions:
+      - Generate exactly {num_questions} questions based **only** on the context provided. 
+      - Create a mix of question types. **Do not** make them all simple definitions. For example, ask about functions, relationships, or what a component is *not*.
+      - For each question, generate 3-5 options.
+      - The "answers" array must contain **all** the correct options.
+      - The incorrect options (distractors) **must be plausible but definitively wrong** according to the provided context.
+      - **CRITICAL**: The final output must be **only** a single, valid JSON object and nothing else. Do not add any text or explanations before or after the JSON.
 
-        JSON schema:  
-        {{
-        "quiz": [
-            {{
-            "question": "question-string",
-            "options": ["string", "string", ...],
-            "answers": ["string", "string", ...] 
-            }},
-            {{
-            "question": "string",
-            "options": ["string", "string", ...],
-            "answers": ["string", "string", ...] 
-            }},
-            ...
-        ]
-        }}
-        """
-    prompt = prompt_header + base_prompt #concatenate prompt sections together
-    response = llm(prompt, max_tokens=500)
+      JSON schema:
+      {{
+      "quiz": [
+          {{
+          "question": "question-string",
+          "options": ["string", "string", ...],
+          "answers": ["string", "string", ...]
+          }},
+          ...
+      ]
+      }}
+      """
+    prompt = prompt_header + base_prompt + "\n{" #concatenate prompt sections together, also primes the response
+    response = llm(prompt, max_tokens=1500)
     return response
 
 def extract_json(text):
+    if not text.startswith("{"): # our prompt should start our output without this first brace
+        text = "{" + text
+    #use a regex pattern to recursively extract the json object
     pat = re.compile(r'\{(?:(?>[^{}]+)|(?R))*\}', re.DOTALL)
     m = pat.search(text)
-    if not m:
+    if not m: # if m is None
         raise ValueError("No JSON object found")
-    quiz = json.loads(m.group(0))
+    quiz = json.loads(m.group(0)) # 0 will collect the entire match
     print("JSON extracted successfully!")
     return quiz

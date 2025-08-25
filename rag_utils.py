@@ -56,7 +56,7 @@ def similar_chunks(user_topic, doc_chunks, topk):
     top_chunks = [doc_chunks[i] for i in chunk_idx] # return a list of the most similar text chunks
     return top_chunks
 
-def rag_path_to_chunks(file_path, user_topic, chunk_size=300, topk=2):
+def rag_path_to_chunks(file_path, user_topic, chunk_size=300, topk=6):
     text = load_text(file_path)
     text_chunks = chunk_text(text, chunk_size)
     similar = similar_chunks(user_topic, text_chunks, topk)
