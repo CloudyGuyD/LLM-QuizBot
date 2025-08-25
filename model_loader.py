@@ -52,6 +52,7 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
       - The "answers" array must contain **all** the correct options.
       - The incorrect options (distractors) **must be plausible but definitively wrong** according to the provided context.
       - **CRITICAL**: The final output must be **only** a single, valid JSON object and nothing else. Do not add any text or explanations before or after the JSON.
+      - The "answers" field should only have correct answers.
 
       JSON schema:
       {{
@@ -65,8 +66,20 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
       ]
       }}
       """
+    
     prompt = prompt_header + base_prompt + "\n{" #concatenate prompt sections together, also primes the response
-    response = llm(prompt, max_tokens=1500)
+    stop = [
+      "}]}",
+      # Common variations with newlines and spaces
+      "}]\n}",
+      "}] }",
+      "}\n]\n}",
+      "} ] }",
+      "} ]\n}",
+      " }]}" 
+      "}]}\n\n"
+    ]
+    response = llm(prompt, max_tokens=1500, temperature=0.4, stop=stop)
     return response
 
 def extract_json(text):
