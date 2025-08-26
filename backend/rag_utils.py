@@ -1,40 +1,5 @@
 from sentence_transformers import SentenceTransformer, util
-import torch
-import fitz #PyMuPDF is labeled as fitz
-import os
-
-def extract_text_pdf(pdf_path): #extract the text from a .pdf
-    full_text = "" #to store text
-    try:
-        with fitz.open(pdf_path) as doc: #open the pdf
-            for page in doc:  # iterate over all pages and add the text
-                full_text += page.get_text()
-    except Exception as e:
-        print(f"Error reading PDF {pdf_path}: {e}")
-    return full_text
-
-def extract_text_txt(txt_path): #extracts text from a .txt file
-    try:
-        with open(txt_path, 'r', encoding="utf-8") as doc: #open the pdf
-            full_text = doc.read()
-    except Exception as e:
-        print(f"Error reading .txt file {txt_path}: {e}")
-    return full_text
-
-    
-
-def load_text(file_path):
-    file_extracts = {
-        ".pdf" : extract_text_pdf,
-        ".txt" : extract_text_txt
-    }
-    __, extension = os.path.splitext(file_path) # grab the file extension
-    extension = extension.lower() # use lowercase for consistency
-    if extension not in file_extracts.keys(): # check if file is not a pdf or txt
-        raise ValueError(f"Unsupported file type: {extension}")
-    extract = file_extracts[extension] # grab correct function for opening file
-    text = extract(file_path) # collect text
-    return text
+from torch.cuda import is_available
 
 def chunk_text(text, chunk_size): # returns a list of strings
     words = text.split() #create a list of words
@@ -45,7 +10,7 @@ def chunk_text(text, chunk_size): # returns a list of strings
 
 def similar_chunks(user_topic, doc_chunks, topk):
     # load the "all-MiniLM-L6-v2" sentence transformer model to embed our text
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cuda' if is_available() else 'cpu'
     embd_model = SentenceTransformer("all-MiniLM-L6-v2", device)
     #encode our topic and document separately
     topic_embd = embd_model.encode(user_topic) # (1, embd_dim)

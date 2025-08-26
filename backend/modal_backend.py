@@ -1,0 +1,51 @@
+from modal import App, Image, asgi_app
+import os
+
+backend_path = os.path.dirname(__file__)
+#define environment
+image = (Image.debian_slim()
+        .pip_install("llama-cpp-python", "huggingface_hub", "fastapi", "regex", "sentence_transformers", "torch") 
+        .add_local_dir(local_path=backend_path, remote_path="/root/backend")
+    )
+app = App('quiz-generator-backend')
+
+
+#model loading
+class QuizModel:
+    def __enter__(self):
+        from llama_cpp import Llama
+        from huggingface_hub import hf_hub_download
+        
+
+        model_path = hf_hub_download(
+            repo_id="itlwas/Mistral-7B-Instruct-v0.1-Q4_K_M-GGUF",
+            filename="mistral-7b-instruct-v0.1-q4_k_m.gguf"
+        )
+        self.llm = Llama(model_path=model_path, verbose=False, flash_attn=True, n_ctx=8192, n_gpu_layers=-1)
+    
+    def generate(self, text_content, topic, RAG=False):
+        from backend.model_loader import generate_quiz, extract_json
+
+        print("Generating quiz!")
+        raw_output = generate_quiz(self.llm, topic, RAG=RAG, text=text_content)
+        processed = extract_json(raw_output)
+        return processed
+
+#deploy the web server
+@app.function(image=image, gpu='T4')
+@asgi_app()
+def fastapi_app():
+    from fastapi import FastAPI, Request
+    web_app = FastAPI()
+    
+    @web_app.post("/generate")
+    async def create_quiz(request: Request):
+        request_data = await request.json()
+        model = QuizModel()
+        quiz_json = model.generate(
+            request_data['text_content'],
+            request_data['topic'],
+            request_data["RAG"]
+        )
+        return quiz_json
+    return web_app
