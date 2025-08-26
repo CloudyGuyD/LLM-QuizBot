@@ -154,7 +154,8 @@ def topic_quiz_page():
                 st.rerun()
         
         if st.session_state.q_answered:
-            if set(user_answers) == set(question['answers']):
+            correct_answers = set(question['answers'])
+            if set(user_answers) == correct_answers:
                 st.success("Correct!")
             else:
                 st.error(f"Incorrect, the correct answer(s) are {", ".join(correct_answers)}")
