@@ -1,3 +1,4 @@
 *.ipynb
 venv/
 model+data/
+__pycache__

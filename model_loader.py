@@ -22,7 +22,7 @@ def generate_until_stop(llm, prompt, stop_token=None, max_tokens=300): #basic ge
 
 def generate_quiz(llm, topic, num_questions=5, RAG=False, text=None):
     if (RAG and not text) or (not RAG and text is not None):
-        raise ValueError("RAG and file_path must both be empty or filled.")
+        raise ValueError("RAG and text arguments must both be empty or filled.")
     #creates a prompt featuring a topic, using JSON format for easy access to questions
     if RAG:
         context = rag_text_to_chunks(text=text, user_topic=topic)

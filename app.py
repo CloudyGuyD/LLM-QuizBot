@@ -1,10 +1,10 @@
 import streamlit as st
 import io
-import tempfile
+import requests
 import time
 import json
 
-
+MODAL_API_URL= "https://tommyduong588--quiz-generator-backend-fastapi-app.modal.run/generate"
 
 #set the page layout to be centered
 st.set_page_config(layout='centered', page_title="AI Quiz Generator")
@@ -162,14 +162,18 @@ def topic_quiz_page():
             if topic: 
                 #show a loading message
                 with st.spinner(f"Generating a quiz about {topic}"):
-                    time.sleep(3) #simulate LLM inference
-                    st.success("Quiz generated successfully!")
-                    #Initialize quiz
-                    st.session_state.quiz_data = dummy_quiz()
-                    st.session_state.q_index = 0
-                    st.session_state.score = 0
-                    st.session_state.q_answered = False
-                st.rerun() # switch to quiz taking state
+                    payload = {'text_content': None, "topic": topic, "RAG": False}
+                    response = requests.post(MODAL_API_URL, json=payload)
+                    if response.ok:
+                        st.success("Quiz generated successfully!")
+                        #Initialize quiz
+                        st.session_state.quiz_data = dummy_quiz()
+                        st.session_state.q_index = 0
+                        st.session_state.score = 0
+                        st.session_state.q_answered = False
+                        st.rerun() # switch to quiz taking state
+                    else:
+                        st.error("Failed to generate quiz.")
             else: 
                 st.warning("Please enter a topic.")
 
