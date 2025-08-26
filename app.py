@@ -14,52 +14,6 @@ if 'page' not in st.session_state:
     st.session_state.page = 'main' 
 
 
-def dummy_quiz():
-    #returns a dummy quiz for development purposes
-    quiz = """
-    {
-        "quiz": [
-            {
-            "question": "What is the capital of Japan?",
-            "options": [
-                "Beijing",
-                "Seoul",
-                "Tokyo",
-                "Bangkok"
-            ],
-            "answers": ["Tokyo"]
-            },
-            {
-            "question": "What is the chemical symbol for water?",
-            "options": [
-                "H2O",
-                "CO2",
-                "O2",
-                "NaCl"
-            ],
-            "answers": ["H2O"]
-            },
-            {
-            "question": "Which of the following are presidents of the United States?",
-            "options": [
-                "Thomas Jefferson",
-                "Abraham Lincoln",
-                "John Adams",
-                "George Washington"
-            ],
-            "answers": ["Thomas Jefferson",
-                "Abraham Lincoln",
-                "John Adams",
-                "George Washington"
-                ]
-            }
-        ]
-    }
-    """
-    json_quiz = json.loads(quiz)
-    return json_quiz
-
-
 def load_question(question, num):
     #takes in a question (dict) and changes onscreen options to match the question
     st.subheader(f"Question {num}: {question['question']}")
@@ -167,7 +121,7 @@ def topic_quiz_page():
                     if response.ok:
                         st.success("Quiz generated successfully!")
                         #Initialize quiz
-                        st.session_state.quiz_data = dummy_quiz()
+                        st.session_state.quiz_data = response.json()
                         st.session_state.q_index = 0
                         st.session_state.score = 0
                         st.session_state.q_answered = False
@@ -195,21 +149,32 @@ def file_quiz_page():
     if 'quiz_data' not in st.session_state:
         #file upload
         uploaded_file = st.file_uploader("Choose a file (.txt or .pdf)", type=['txt', 'pdf'], accept_multiple_files=False)
-        file_bytes = uploaded_file.read()
-        decoded_string = io.StringIO(file_bytes.decode('utf-8'))
+       
         topic = st.text_input("Enter a topic from the file (e.g., 'Photosynthesis')")
 
         if st.button("Generate Quiz!"):
-            if topic and uploaded_file is not None: 
+            if topic and uploaded_file is not None:
+                file_bytes = uploaded_file.read()
+                decoded_string = file_bytes.decode('utf-8') 
                 #show a loading message
                 with st.spinner(f"Generating a quiz about {topic}"):
-                    time.sleep(3) #simulate LLM inference
-                    st.success("Quiz generated successfully!")
-                #INSERT QUIZ LAYOUT AND QUESTIONS
-
-
+                    payload = {'text_content': decoded_string, "topic": topic, "RAG": True}
+                    response = requests.post(MODAL_API_URL, json=payload)
+                    if response.ok:
+                        st.success("Quiz generated successfully!")
+                        #Initialize quiz
+                        st.session_state.quiz_data = response.json()
+                        st.session_state.q_index = 0
+                        st.session_state.score = 0
+                        st.session_state.q_answered = False
+                        st.rerun() # switch to quiz taking state
+                    else:
+                        st.error("Failed to generate quiz.")
             else: 
                 st.warning("Please upload a file and enter a topic.")
+    
+    else:
+        run_quiz()
     
     #go back to main menu
     if st.button("← Back to Main Menu"):

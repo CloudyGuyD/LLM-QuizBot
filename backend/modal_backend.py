@@ -3,8 +3,12 @@ import os
 
 backend_path = os.path.dirname(__file__)
 #define environment
-image = (Image.debian_slim()
-        .pip_install("llama-cpp-python", "huggingface_hub", "fastapi", "regex", "sentence_transformers", "torch") 
+image = (Image.from_registry(f"nvidia/cuda:12.2.0-devel-ubuntu22.04",add_python='3.12')
+        .run_commands(
+        "pip install https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.16-cu122/llama_cpp_python-0.3.16-cp312-cp312-linux_x86_64.whl",
+        "pip install torch --index-url https://download.pytorch.org/whl/cu121",
+        "pip install huggingface_hub fastapi regex sentence_transformers"
+        )
         .add_local_dir(local_path=backend_path, remote_path="/root/backend")
     )
 app = App('quiz-generator-backend')
@@ -12,7 +16,7 @@ app = App('quiz-generator-backend')
 
 #model loading
 class QuizModel:
-    def __enter__(self):
+    def __init__(self):
         from llama_cpp import Llama
         from huggingface_hub import hf_hub_download
         
@@ -36,12 +40,13 @@ class QuizModel:
 @asgi_app()
 def fastapi_app():
     from fastapi import FastAPI, Request
+    
+    model = QuizModel()
     web_app = FastAPI()
     
     @web_app.post("/generate")
     async def create_quiz(request: Request):
         request_data = await request.json()
-        model = QuizModel()
         quiz_json = model.generate(
             request_data['text_content'],
             request_data['topic'],

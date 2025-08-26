@@ -73,11 +73,11 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, text=None):
       "}\n]\n}",
       "} ] }",
       "} ]\n}",
-      " }]}" 
+      " }]}", 
       "}]}\n\n"
     ]
     response = llm(prompt, max_tokens=1500, temperature=0.4, stop=stop)
-    return response
+    return response['choices'][0]['text']
 
 def extract_json(text):
     if not text.startswith("{"): # our prompt should start our output without this first brace
