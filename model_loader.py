@@ -24,7 +24,6 @@ def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
     if (RAG and not file_path) or (not RAG and file_path is not None):
         raise ValueError("RAG and file_path must both be empty or filled.")
     #creates a prompt featuring a topic, using JSON format for easy access to questions
-    TF = randint(0, num_questions//2) # generate a random number of T/F questions, only up to half of the total number of questions
     if RAG:
         context = rag_path_to_chunks(file_path=file_path, user_topic=topic)
         context = "\n\n".join(context)
