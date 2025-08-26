@@ -1,4 +1,6 @@
 import streamlit as st
+import io
+import tempfile
 import time
 import json
 
@@ -38,14 +40,18 @@ def dummy_quiz():
             "answers": ["H2O"]
             },
             {
-            "question": "Who was the first President of the United States?",
+            "question": "Which of the following are presidents of the United States?",
             "options": [
                 "Thomas Jefferson",
                 "Abraham Lincoln",
                 "John Adams",
                 "George Washington"
             ],
-            "answers": ["George Washington"]
+            "answers": ["Thomas Jefferson",
+                "Abraham Lincoln",
+                "John Adams",
+                "George Washington"
+                ]
             }
         ]
     }
@@ -80,6 +86,48 @@ def load_question(question, num):
                 user_selections.append(option)
     
     return user_selections
+
+def run_quiz():
+    #quiz taking mode
+    if 'quiz_data' in st.session_state:
+        quiz_data = st.session_state.quiz_data
+
+        if st.session_state.q_index >= len(quiz_data['quiz']):
+            st.success(f"Quiz Complete! Your final score is {st.session_state.score} out of {len(quiz_data['quiz'])}.")
+            if st.button("Generate another Quiz!"):
+                for key in ['quiz_data', 'q_index', 'score', 'q_answered']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.rerun()
+            return
+
+        q_index = st.session_state.q_index
+        question = quiz_data['quiz'][q_index]
+        user_answers = load_question(question, q_index+1)
+        
+        if not st.session_state.q_answered:
+            if st.button("Check Answer"):
+                st.session_state.q_answered = True
+                correct_answers = set(question['answers'])
+                if set(user_answers) == correct_answers:
+                    st.session_state.score += 1
+                    st.success("Correct!")
+                else:
+                    st.error(f"Incorrect, the correct answer(s) are {", ".join(correct_answers)}")
+                st.rerun()
+        
+        if st.session_state.q_answered:
+            correct_answers = set(question['answers'])
+            if set(user_answers) == correct_answers:
+                st.success("Correct!")
+            else:
+                st.error(f"Incorrect, the correct answer(s) are {", ".join(correct_answers)}")
+            
+            #navigate to next question
+            if st.button("Next Question"):
+                st.session_state.q_index += 1
+                st.session_state.q_answered = False
+                st.rerun()
 
 #function for main page, displays two navigation buttons
 def main_page():
@@ -125,46 +173,8 @@ def topic_quiz_page():
             else: 
                 st.warning("Please enter a topic.")
 
-    #quiz taking mode
-    if 'quiz_data' in st.session_state:
-        quiz_data = st.session_state.quiz_data
-
-        if st.session_state.q_index >= len(quiz_data['quiz']):
-            st.success(f"Quiz Complete! Your final score is {st.session_state.score} out of {len(quiz_data['quiz'])}.")
-            if st.button("Generate another Quiz!"):
-                for key in ['quiz_data', 'q_index', 'score', 'q_answered']:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                st.rerun()
-            return
-
-        q_index = st.session_state.q_index
-        question = quiz_data['quiz'][q_index]
-        user_answers = load_question(question, q_index+1)
-        
-        if not st.session_state.q_answered:
-            if st.button("Check Answer"):
-                st.session_state.q_answered = True
-                correct_answers = set(question['answers'])
-                if set(user_answers) == correct_answers:
-                    st.session_state.score += 1
-                    st.success("Correct!")
-                else:
-                    st.error(f"Incorrect, the correct answer(s) are {", ".join(correct_answers)}")
-                st.rerun()
-        
-        if st.session_state.q_answered:
-            correct_answers = set(question['answers'])
-            if set(user_answers) == correct_answers:
-                st.success("Correct!")
-            else:
-                st.error(f"Incorrect, the correct answer(s) are {", ".join(correct_answers)}")
-            
-            #navigate to next question
-            if st.button("Next Question"):
-                st.session_state.q_index += 1
-                st.session_state.q_answered = False
-                st.rerun()
+    else:
+        run_quiz()
 
     #go back to main menu
     if st.button("← Back to Main Menu"):
@@ -176,22 +186,26 @@ def file_quiz_page():
 
     st.title("Generate Quiz from File")
 
-    #file upload
-    uploaded_file = st.file_uploader("Choose a file (.txt or .pdf)", type=['txt', 'pdf'])
+    
 
-    topic = st.text_input("Enter a topic from the file (e.g., 'Photosynthesis')")
+    if 'quiz_data' not in st.session_state:
+        #file upload
+        uploaded_file = st.file_uploader("Choose a file (.txt or .pdf)", type=['txt', 'pdf'], accept_multiple_files=False)
+        file_bytes = uploaded_file.read()
+        decoded_string = io.StringIO(file_bytes.decode('utf-8'))
+        topic = st.text_input("Enter a topic from the file (e.g., 'Photosynthesis')")
 
-    if st.button("Generate Quiz!"):
-        if topic: 
-            #show a loading message
-            with st.spinner(f"Generating a quiz about {topic}"):
-                time.sleep(3) #simulate LLM inference
-            st.success("Quiz generated successfully!")
-            #INSERT QUIZ LAYOUT AND QUESTIONS
+        if st.button("Generate Quiz!"):
+            if topic and uploaded_file is not None: 
+                #show a loading message
+                with st.spinner(f"Generating a quiz about {topic}"):
+                    time.sleep(3) #simulate LLM inference
+                    st.success("Quiz generated successfully!")
+                #INSERT QUIZ LAYOUT AND QUESTIONS
 
 
-        else: 
-            st.warning("Please upload a file and enter a topic.")
+            else: 
+                st.warning("Please upload a file and enter a topic.")
     
     #go back to main menu
     if st.button("← Back to Main Menu"):

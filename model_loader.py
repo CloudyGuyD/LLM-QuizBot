@@ -2,7 +2,7 @@ from llama_cpp import Llama
 from random import randint
 import regex as re
 import json
-from rag_utils import rag_path_to_chunks
+from rag_utils import rag_text_to_chunks
 
 def generate_until_stop(llm, prompt, stop_token=None, max_tokens=300): #basic generation without prompt engineering
     assert isinstance(llm, Llama), "must be a llama model"
@@ -20,12 +20,12 @@ def generate_until_stop(llm, prompt, stop_token=None, max_tokens=300): #basic ge
     return output
 
 
-def generate_quiz(llm, topic, num_questions=5, RAG=False, file_path=None):
-    if (RAG and not file_path) or (not RAG and file_path is not None):
+def generate_quiz(llm, topic, num_questions=5, RAG=False, text=None):
+    if (RAG and not text) or (not RAG and text is not None):
         raise ValueError("RAG and file_path must both be empty or filled.")
     #creates a prompt featuring a topic, using JSON format for easy access to questions
     if RAG:
-        context = rag_path_to_chunks(file_path=file_path, user_topic=topic)
+        context = rag_text_to_chunks(text=text, user_topic=topic)
         context = "\n\n".join(context)
         prompt_header = f"""You are an expert quiz creator. Your **only task** is to create a quiz based **strictly on the provided context**.
 
@@ -91,3 +91,4 @@ def extract_json(text):
     quiz = json.loads(m.group(0)) # 0 will collect the entire match
     print("JSON extracted successfully!")
     return quiz
+
