@@ -147,7 +147,7 @@ def file_quiz_page():
 
     if 'quiz_data' not in st.session_state:
         #file upload
-        uploaded_file = st.file_uploader("Choose a file (.txt or .pdf)", type=['txt', 'pdf'], accept_multiple_files=False)
+        uploaded_file = st.file_uploader("Choose a file (.txt or .pdf) you'd like to be tested on!", type=['txt', 'pdf'], accept_multiple_files=False)
        
         topic = st.text_input("Enter a topic from the file (e.g., 'Photosynthesis')")
 
