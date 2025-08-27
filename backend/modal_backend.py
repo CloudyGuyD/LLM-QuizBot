@@ -1,6 +1,7 @@
 from modal import App, Image, asgi_app, Secret
 import os
 
+
 backend_path = os.path.dirname(__file__)
 #define environment
 image = (Image.from_registry(f"nvidia/cuda:12.2.0-devel-ubuntu22.04",add_python='3.12')
@@ -19,13 +20,14 @@ class QuizModel:
     def __init__(self):
         from llama_cpp import Llama
         from huggingface_hub import hf_hub_download
-        
+        from random import randint
 
         model_path = hf_hub_download(
             repo_id="itlwas/Mistral-7B-Instruct-v0.1-Q4_K_M-GGUF",
             filename="mistral-7b-instruct-v0.1-q4_k_m.gguf"
         )
-        self.llm = Llama(model_path=model_path, verbose=False, flash_attn=True, n_ctx=8192, n_gpu_layers=-1)
+        seed = randint(0, 10000)
+        self.llm = Llama(model_path=model_path, verbose=False, flash_attn=True, n_ctx=8192, n_gpu_layers=-1, seed=seed)
     
     def generate(self, text_content, topic, RAG=False):
         from backend.model_loader import generate_quiz, extract_json
@@ -36,7 +38,7 @@ class QuizModel:
         return processed
 
 #deploy the web server
-@app.function(image=image, gpu='T4', secrets=[Secret.from_name("quiz-app-secret")])
+@app.function(image=image, gpu='T4', secrets=[Secret.from_name("quiz-app-secret")], timeout=300)
 @asgi_app()
 def fastapi_app():
     from fastapi import FastAPI, Request, Header, HTTPException
