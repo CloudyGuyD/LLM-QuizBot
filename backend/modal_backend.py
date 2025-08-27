@@ -1,4 +1,4 @@
-from modal import App, Image, asgi_app
+from modal import App, Image, asgi_app, Secret
 import os
 
 backend_path = os.path.dirname(__file__)
@@ -36,16 +36,22 @@ class QuizModel:
         return processed
 
 #deploy the web server
-@app.function(image=image, gpu='T4')
+@app.function(image=image, gpu='T4', secrets=[Secret.from_name("quiz-app-secret")])
 @asgi_app()
 def fastapi_app():
-    from fastapi import FastAPI, Request
+    from fastapi import FastAPI, Request, Header, HTTPException
     
     model = QuizModel()
     web_app = FastAPI()
+
+    #get secret token from environment
+    AUTH_TOKEN = os.getenv("AUTH_TOKEN")
     
     @web_app.post("/generate")
-    async def create_quiz(request: Request):
+    async def create_quiz(request: Request, authorization: str | None = Header(default=None)):
+        if not authorization or authorization != f"Bearer {AUTH_TOKEN}":
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
         request_data = await request.json()
         quiz_json = model.generate(
             request_data['text_content'],

@@ -1,10 +1,9 @@
 import streamlit as st
-import io
 import requests
-import time
-import json
 
-MODAL_API_URL= "https://tommyduong588--quiz-generator-backend-fastapi-app.modal.run/generate"
+MODAL_API_URL= st.secrets["MODAL_API_URL"]
+AUTH_TOKEN = st.secrets["AUTH_TOKEN"]
+headers = {"Authorization": f"Bearer {AUTH_TOKEN}"}
 
 #set the page layout to be centered
 st.set_page_config(layout='centered', page_title="AI Quiz Generator")
@@ -117,7 +116,7 @@ def topic_quiz_page():
                 #show a loading message
                 with st.spinner(f"Generating a quiz about {topic}"):
                     payload = {'text_content': None, "topic": topic, "RAG": False}
-                    response = requests.post(MODAL_API_URL, json=payload)
+                    response = requests.post(MODAL_API_URL, json=payload, headers=headers)
                     if response.ok:
                         st.success("Quiz generated successfully!")
                         #Initialize quiz
@@ -159,7 +158,7 @@ def file_quiz_page():
                 #show a loading message
                 with st.spinner(f"Generating a quiz about {topic}"):
                     payload = {'text_content': decoded_string, "topic": topic, "RAG": True}
-                    response = requests.post(MODAL_API_URL, json=payload)
+                    response = requests.post(MODAL_API_URL, json=payload, headers=headers)
                     if response.ok:
                         st.success("Quiz generated successfully!")
                         #Initialize quiz
